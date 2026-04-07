@@ -11,4 +11,5 @@ public interface CommandLogRepository extends JpaRepository<CommandLog, Long> {
     List<CommandLog> findTop10ByDeviceIdOrderBySentAtDesc(String deviceId);
     long countByDeviceId(String deviceId);
     CommandLog findFirstByDeviceIdOrderBySentAtAsc(String deviceId);
+    void deleteByDeviceId(String deviceId);
 }

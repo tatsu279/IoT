@@ -60,7 +60,6 @@ public class DeviceController {
     // ── GET /devices/{id} ── Get single device
     @GetMapping("/devices/{id}")
     public ResponseEntity<?> getDevice(@PathVariable String id) {
-        // Try find by mac first, then by UUID
         Optional<Device> opt = deviceRepository.findByMacAddress(id);
         if (opt.isEmpty()) {
             try {
@@ -81,16 +80,19 @@ public class DeviceController {
     @PostMapping("/api/devices/{mac}/toggle")
     public ResponseEntity<?> toggleDevice(@PathVariable String mac, @RequestBody Map<String, String> payload) {
         String command = payload.get("command");
-        mqttService.publishCommand(mac, command);
-        return ResponseEntity.ok(Map.of("message", "Command published"));
+        // publishAndLogCommand handles BOTH publishing to MQTT AND logging to DB
+        mqttService.publishAndLogCommand(mac, command);
+        return ResponseEntity.ok(Map.of("message", "Command published and logged"));
     }
 
     // ── POST /commands/{deviceId} ── Send command (used by Flutter)
     @PostMapping("/commands/{deviceId}")
     public ResponseEntity<?> sendCommand(@PathVariable String deviceId, @RequestBody Map<String, Object> payload) {
         String cmd = (String) payload.get("cmd");
-        mqttService.publishCommand(deviceId, cmd);
-        return ResponseEntity.ok(Map.of("message", "Command sent", "cmd", cmd));
+        // publishAndLogCommand handles BOTH publishing to MQTT AND logging to DB
+        // This is the single entry point - no echo-loop duplication
+        mqttService.publishAndLogCommand(deviceId, cmd);
+        return ResponseEntity.ok(Map.of("message", "Command sent and logged", "cmd", cmd));
     }
 
     // ── DELETE /devices/{id} ── Delete single device
@@ -98,6 +100,8 @@ public class DeviceController {
     public ResponseEntity<?> deleteDevice(@PathVariable String id) {
         Optional<Device> opt = deviceRepository.findByMacAddress(id);
         if (opt.isPresent()) {
+            // Also clean up command logs for this device
+            commandLogRepository.deleteByDeviceId(id);
             deviceRepository.delete(opt.get());
             return ResponseEntity.ok(Map.of("message", "Device deleted successfully"));
         }
@@ -114,10 +118,12 @@ public class DeviceController {
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         List<Device> devices = deviceRepository.findAll();
+        long totalLogs = commandLogRepository.count();
         return ResponseEntity.ok(Map.of(
             "status", "UP",
             "mqtt_connected", mqttService.isMqttConnected(),
             "devices_count", devices.size(),
+            "command_logs_count", totalLogs,
             "devices", devices
         ));
     }
