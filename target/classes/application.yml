@@ -1,0 +1,22 @@
+server:
+  address: 0.0.0.0
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/iot_smartlamp}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:123456}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+mqtt:
+  broker: tcp://broker.emqx.io:1883
+  client-id: spring-boot-backend-1
