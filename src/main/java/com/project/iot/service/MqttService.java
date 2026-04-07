@@ -144,9 +144,8 @@ public class MqttService {
             System.out.println("🆕 Auto-registering new device: " + deviceId);
         }
 
-        boolean stateChanged = (device.getId() == null)
-                || (device.isOn() != isOn)
-                || (device.isOnline() != isOnline);
+        boolean relayChanged = (device.getId() == null) || (device.isOn() != isOn);
+        boolean stateChanged = relayChanged || (device.isOnline() != isOnline);
 
         if (device.isOn() != isOn) device.setOn(isOn);
         if (device.isOnline() != isOnline) device.setOnline(isOnline);
@@ -162,6 +161,11 @@ public class MqttService {
                     + " | relay=" + (isOn ? "ON" : "OFF")
                     + " | online=" + isOnline
                     + " | id=" + saved.getId());
+        }
+
+        // Log the command history if it's a physical button press (relay state changed via MQTT status)
+        if (relayChanged) {
+            logCommand(deviceId, isOn ? "ON" : "OFF");
         }
     }
 
