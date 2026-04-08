@@ -132,17 +132,11 @@ public class MqttService {
         boolean isOnline = payload.contains("\"online\":true");
 
         Optional<Device> opt = deviceRepository.findByMacAddress(deviceId);
-        Device device;
-        if (opt.isPresent()) {
-            device = opt.get();
-            System.out.println("🔍 Found device: " + device.getMacAddress() + " (id=" + device.getId() + ")");
-        } else {
-            device = new Device();
-            device.setMacAddress(deviceId);
-            String shortName = deviceId.length() > 6 ? deviceId.substring(deviceId.length() - 6) : deviceId;
-            device.setName("ESP32 IoT " + shortName);
-            System.out.println("🆕 Auto-registering new device: " + deviceId);
+        if (opt.isEmpty()) {
+            System.out.println("⚠️ Ignoring status for unknown/deleted device: " + deviceId);
+            return;
         }
+        Device device = opt.get();
 
         boolean relayChanged = (device.getId() == null) || (device.isOn() != isOn);
         boolean stateChanged = relayChanged || (device.isOnline() != isOnline);
